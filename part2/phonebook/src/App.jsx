@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Filter from "./components/Filter"
 import PersonForm from "./components/PersonForm"
 import Persons from "./components/Persons"
+import axios from "axios"
 
 const App = () =>{
   const [persons, setPersons] = useState([])
@@ -10,7 +11,17 @@ const App = () =>{
   const [newNumber, setNewNumber] = useState('')
   const [search, setSearch] = useState('')
   const [showAll, setShowAll] = useState(true)
+
+  const hook = () =>{
+    axios 
+      .get('http://localhost:3001/persons')
+      .then(response =>{
+        setPersons(response.data)
+      })
+  }
   
+  useEffect(hook, [])
+
   const setPerson = (event) => setNewName(event.target.value)
   const setNumber = (event) => setNewNumber(event.target.value)
   const duplicateName = (names) => names.name === newName
