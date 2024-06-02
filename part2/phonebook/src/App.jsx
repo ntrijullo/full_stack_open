@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import Filter from "./components/Filter"
 import PersonForm from "./components/PersonForm"
 import Persons from "./components/Persons"
-import axios from "axios"
+import personService from "./services/persons"
 
 const App = () =>{
   const [persons, setPersons] = useState([])
@@ -13,10 +13,13 @@ const App = () =>{
   const [showAll, setShowAll] = useState(true)
 
   const hook = () =>{
-    axios 
-      .get('http://localhost:3001/persons')
+    personService
+      .getAll()
       .then(response =>{
-        setPersons(response.data)
+        setPersons(response)
+      })
+      .catch(error =>{
+        console.log(error)
       })
   }
   
@@ -41,17 +44,47 @@ const App = () =>{
   
   const addPerson = (event) => {
     event.preventDefault()
-    if(persons.find(duplicateName) === undefined){
-      setPersons(persons.concat({name:newName, number:newNumber}))
-      setNewName('')
-      setNewNumber('')
+    const existPerson = persons.find(duplicateName)
+    if( existPerson === undefined){
+      const newPersonObject = {
+        name:newName, number:newNumber
+      }
+      personService
+        .create(newPersonObject)
+        .then(response =>{
+          setPersons(persons.concat(response))
+        })
+        .catch(error =>{
+          console.log(error)
+        })
     }else{
-      alert(`${newName} is already added to phonebook`)
-      setNewName('')
+      if(window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)){
+        const changePerson = {...existPerson, number:newNumber}
+        personService
+          .update(existPerson.id, changePerson)
+          .then(response =>{
+            console.log(response)
+            setPersons(persons.map(person => person.id !== existPerson.id ? person:response))
+          })
+      }
     }
-
+    setNewName('')
+    setNewNumber('')
   }
 
+  const remove = (id) =>{
+    const person = persons.find(person => person.id === id)
+    if(window.confirm(`Delete ${person.name} ?`)){
+      personService
+      .remove(id)
+      .then(() => {
+        setPersons(persons.filter(person => person.id !== id))
+      })
+      .catch(error =>{
+        console.log(error)
+      })
+    }
+  }
 
   return(
     <div>
@@ -67,7 +100,7 @@ const App = () =>{
       />  
 
       <h2>Numbers</h2>
-      <Persons persons={personsToShow} />
+      <Persons persons={personsToShow} remove={remove}/>
     </div>
   )
 }
